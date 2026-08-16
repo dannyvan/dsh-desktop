@@ -2,6 +2,10 @@
 
 把 DSH Web GUI 套成原生窗口的轻量 Electron 壳。
 
+拉起走官方同一条：`~/.local/bin/npx --yes @deepseek-ai/dsh web`。
+不扫 nvm、不找 PATH 里的 `dsh`、不依赖登录 zsh。`npx` / `node` 来自
+dotfiles 的 `bin/install-node-toolset.sh`（链在 `~/.local/bin`）。
+
 ## 使用
 
 ```sh
@@ -11,9 +15,9 @@ npm run dist     # 打包出 dist/DeepSeek Harness Desktop-*.dmg / .zip
 
 启动逻辑（main.js）：
 
-1. 探测 `127.0.0.1:3080/3081/3082` 是否有在跑的 DSH 实例 → 有则**复用**；
-2. 没有 → 自动 `spawn dsh web --port 3080`（PATH 找不到 dsh 时回退 `npx --yes @deepseek-ai/dsh`）并轮询 `__DSH_BOOT__` 就绪；
-3. 打开原生窗口；关窗只杀掉**自己启动**的服务，复用的不误杀。
+1. 探测 `127.0.0.1:3080/3081/3082` 是否有在跑的 DSH 实例 → 有则**复用**（关窗不停这份服务）；
+2. 没有 → `spawn` `~/.local/bin/npx --yes @deepseek-ai/dsh web --port 3080`（独立进程组），轮询 `__DSH_BOOT__` 就绪；
+3. 打开原生窗口；关窗只杀掉**自己启动**的进程组（SIGTERM，1.5s 后补 SIGKILL）。复用的不误杀。
 
 日志：`~/Library/Logs/DSH Desktop/server.log`
 
