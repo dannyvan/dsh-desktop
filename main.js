@@ -39,10 +39,11 @@ function probeDsh(port, timeout = 2000) {
   })
 }
 
-/** 用登录 shell（zsh）解析用户的真实 PATH —— .app 启动时 PATH 是精简的，nvm 等工具不在里面。 */
+/** 用登录 shell（zsh）解析用户的真实 PATH —— .app 启动时 PATH 是精简的，nvm 等工具不在里面。
+ * 必须用 -lic（login + interactive）：-lc 不加载 ~/.zshrc，而 nvm 的 PATH 注入在 .zshrc 里。 */
 function resolveShellPath() {
   return new Promise((resolve) => {
-    execFile('/bin/zsh', ['-lc', 'echo -n "$PATH"'], (err, stdout) => {
+    execFile('/bin/zsh', ['-lic', 'echo -n "$PATH"'], (err, stdout) => {
       if (err || !stdout || !stdout.trim()) return resolve(null)
       resolve(stdout.trim())
     })
@@ -51,19 +52,41 @@ function resolveShellPath() {
 
 /**
  * 找 dsh CLI 的绝对路径；找不到时回退到 npx 的绝对路径。
+ * 顺序：zsh -lic（加载 .zshrc 拿 nvm PATH）→ 直接扫 ~/.nvm 下 node 版本目录的 bin → npx。
  * 返回 { kind: 'cli'|'npx', path } 或 null。
  */
 function findDshCli(shellPath) {
   const run = (cmd) => new Promise((resolve) => {
     const env = shellPath ? { ...process.env, PATH: `${shellPath}:${process.env.PATH || ''}` } : process.env
-    execFile('/bin/zsh', ['-lc', `command -v ${cmd}`], { env }, (err, stdout) => {
+    execFile('/bin/zsh', ['-lic', `command -v ${cmd}`], { env }, (err, stdout) => {
       if (err || !stdout || !stdout.trim()) return resolve(null)
       resolve(stdout.trim().split('\n')[0])
     })
   })
+  // nvm 目录兜底：直接找 ~/.nvm/versions/node/v*/bin 下可执行的 dsh
+  const scanNvm = () => new Promise((resolve) => {
+    fs.readdir(path.join(os.homedir(), '.nvm', 'versions', 'node'), (err, dirs) => {
+      if (err) return resolve(null)
+      const candidates = dirs
+        .filter((d) => /^v\d+\./.test(d))
+        .sort((a, b) => {
+          const va = a.slice(1).split('.').map(Number)
+          const vb = b.slice(1).split('.').map(Number)
+          return vb[0] - va[0] || vb[1] - va[1] || vb[2] - va[2]
+        })
+      for (const d of candidates) {
+        const p = path.join(os.homedir(), '.nvm', 'versions', 'node', d, 'bin', 'dsh')
+        if (fs.existsSync(p)) return resolve(p)
+      }
+      resolve(null)
+    })
+  })
   return run('dsh').then((cli) => {
     if (cli) return { kind: 'cli', path: cli }
-    return run('npx').then((npx) => npx ? { kind: 'npx', path: npx } : null)
+    return scanNvm().then((scanned) => {
+      if (scanned) return { kind: 'cli', path: scanned }
+      return run('npx').then((npx) => npx ? { kind: 'npx', path: npx } : null)
+    })
   })
 }
 
