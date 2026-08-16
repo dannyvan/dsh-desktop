@@ -1,0 +1,36 @@
+{
+  "name": "dsh-desktop",
+  "version": "1.0.0",
+  "description": "轻量 macOS Electron 壳：把 DeepSeek Harness Web GUI 套成桌面应用，拖拽文件直取原始路径",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --mac"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^43.4.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.local.dsh-desktop",
+    "productName": "DeepSeek Harness",
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.png",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "directories": {
+      "output": "dist"
+    }
+  }
+}
