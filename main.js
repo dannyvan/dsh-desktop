@@ -72,7 +72,10 @@ async function startOwnServer(port) {
   const shellPath = await resolveShellPath()
   const found = await findDshCli(shellPath)
   if (!found) throw new Error('未找到 dsh 或 npx，请先安装 @deepseek-ai/dsh（npm i -g @deepseek-ai/dsh）')
-  const env = shellPath ? { ...process.env, PATH: `${shellPath}:${process.env.PATH || ''}` } : process.env
+  // DSH_NO_OPEN=1：本机的 ~/.local/bin/dsh 是自定义包装，会自动 open 浏览器；
+  // 壳自己开窗口，不需要它再弹系统浏览器。
+  const env = { ...process.env, DSH_NO_OPEN: '1' }
+  if (shellPath) env.PATH = `${shellPath}:${env.PATH || ''}`
   let argv
   if (found.kind === 'cli') {
     argv = [found.path, 'web', '--port', String(port)]
