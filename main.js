@@ -112,9 +112,9 @@ function createWindow(url) {
     },
   })
 
-  // 外部链接交给系统浏览器，窗口内禁止跳走
-  mainWindow.webContents.setWindowOpenHandler(({ url: u }) => {
-    if (/^https?:/.test(u)) shell.openExternal(u)
+  // 壳内一律不弹外部浏览器窗口：页面里任何 window.open 都被拦截，
+  // 避免 DSH 页面自动弹出的外部链接每次都在系统浏览器里新开标签。
+  mainWindow.webContents.setWindowOpenHandler(() => {
     return { action: 'deny' }
   })
   mainWindow.webContents.on('will-navigate', (e, u) => {
