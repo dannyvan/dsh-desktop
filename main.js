@@ -68,12 +68,12 @@ function stopOwnServer() {
   }, KILL_GRACE_MS)
 }
 
-/** 官方入口：~/.local/bin/npx --yes @deepseek-ai/dsh web --port N */
+/** 官方入口：~/.local/bin/npx --yes @deepseek-ai/dsh web --port N --no-open */
 async function startOwnServer(port) {
   if (!fs.existsSync(NPX)) {
     throw new Error(`没有 ${NPX}。先跑 dotfiles 的 bin/install-node-toolset.sh`)
   }
-  const args = ['--yes', '@deepseek-ai/dsh', 'web', '--port', String(port)]
+  const args = ['--yes', '@deepseek-ai/dsh', 'web', '--port', String(port), '--no-open']
   const env = {
     ...process.env,
     PATH: `${LOCAL_BIN}:/usr/bin:/bin:/usr/sbin:/sbin`,
